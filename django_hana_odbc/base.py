@@ -1,24 +1,21 @@
 """
-SAP HANA database backend for Django.
+SAP HANA ODBC database backend for Django.
 """
 import logging
 import sys
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import utils
 from django.db.backends import *
 from django.db.backends.signals import connection_created
-from django_hana.operations import DatabaseOperations
-from django_hana.client import DatabaseClient
-from django_hana.creation import DatabaseCreation
-from django_hana.introspection import DatabaseIntrospection
+from django_hana_odbc.operations import DatabaseOperations
+from django_hana_odbc.client import DatabaseClient
+from django_hana_odbc.creation import DatabaseCreation
+from django_hana_odbc.introspection import DatabaseIntrospection
 from django.utils.timezone import utc
 from time import time
 
-try:
-    from hdbcli import dbapi as Database
-except ImportError as e:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("Error loading SAP HANA Python driver: %s" % e)
+import pyodbc as Database
 
 DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
@@ -174,26 +171,26 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             raise
 
     def connect(self):
-        if not self.settings_dict['NAME']:
-            from django.core.exceptions import ImproperlyConfigured
+        settings = self.settings_dict
+
+        if settings.get('CONNECTION_STRING'):
+            connection_string = settings['CONNECTION_STRING']
+        elif settings.get('DSN') and settings.get('USER') and settings.get('PASSWORD'):
+            connection_string = 'DSN=%(DSN)s;UID=%(USER)s;PWD=%(PASSWORD)s' % settings
+        else:
+            raise ImproperlyConfigured(
+                "settings.DATABASES is improperly configured. "
+                "Please supply either CONNECTION_STRING, or DSN, USER and PASSWORD values.")
+
+        if not settings.get('NAME'):
             raise ImproperlyConfigured(
                 "settings.DATABASES is improperly configured. "
                 "Please supply the NAME value.")
-        conn_params = {}
-        if self.settings_dict['USER']:
-            conn_params['user'] = self.settings_dict['USER']
-        if self.settings_dict['PASSWORD']:
-            conn_params['password'] = self.settings_dict['PASSWORD']
-        if self.settings_dict['HOST']:
-            conn_params['host'] = self.settings_dict['HOST']
-        if self.settings_dict['PORT']:
-            conn_params['port'] = self.settings_dict['PORT']
-        self.connection = Database.connect(address=conn_params['host'],port=int(conn_params['port']),user=conn_params['user'],password=conn_params['password'])
-        # set autocommit on by default
-        self.connection.setautocommit(auto=True)
-        self.default_schema=self.settings_dict['NAME']
-        # make it upper case
-        self.default_schema=self.default_schema.upper()
+
+        # connect with autocommit on unless overridden in settings
+        self.connection = Database.connect(connection_string, autocommit=settings.get('AUTOCOMMIT', True))
+        # uppercase default schema name
+        self.default_schema=settings['NAME'].upper()
         self.create_or_set_default_schema()
 
     def _cursor(self):
@@ -236,7 +233,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         """
         self.ensure_connection()
         if self.features.uses_autocommit and managed:
-            self.connection.setautocommit(auto=False)
+            self.connection.autocommit = False
 
     def leave_transaction_management(self):
         """
@@ -256,7 +253,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             raise
         finally:
             # restore autocommit behavior
-            self.connection.setautocommit(auto=True)
+            self.connection.autocommit = True
         self._dirty = False
 
     def _commit(self):
