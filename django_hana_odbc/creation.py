@@ -82,7 +82,7 @@ class DatabaseCreation(BaseDatabaseCreation):
                      for f in field_constraints]))
 
         ### check which column type
-        table_type = django_hana.MODEL_STORE.get(model.__name__, self.connection.settings_dict.get('DEFAULT_MODEL_STORE', 'COLUMN'))
+        table_type = django_hana_odbc.MODEL_STORE.get(model.__name__, self.connection.settings_dict.get('DEFAULT_MODEL_STORE', 'COLUMN'))
 
         full_statement = [style.SQL_KEYWORD('CREATE ' + table_type + ' TABLE') + ' ' +
                           style.SQL_TABLE(qn(opts.db_table)) + ' (']
