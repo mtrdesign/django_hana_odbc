@@ -65,13 +65,24 @@ class CursorWrapper(object):
     def __iter__(self):
         return iter(self.cursor)
 
+    def _adapt_params(self, params):
+        """
+        Stringify GIS-adapted geometry params to avoid an 'Invalid type' ODBC driver error.
+        """
+        def adapted_if_needed(param):
+            if hasattr(self.db.ops, 'Adapter') and isinstance(param, self.db.ops.Adapter):
+                return str(param)
+            else:
+                return param
+        return tuple([adapted_if_needed(p) for p in params])
 
     def execute(self, sql, params=()):
         """
             execute with replaced placeholders
         """
         try:
-            self.cursor.execute(self._replace_params(sql, len(params) if params else 0), params)
+            self.cursor.execute(self._replace_params(sql, len(params) if params else 0),
+                                self._adapt_params(params))
         except IntegrityError as error:
             raise utils.IntegrityError(str(error))
         except Database.Error as general_error:
@@ -83,7 +94,8 @@ class CursorWrapper(object):
 
     def executemany(self, sql, param_list):
         try:
-            self.cursor.executemany(self._replace_params(sql, len(param_list[0]) if param_list and len(param_list) > 0 else 0), param_list)
+            self.cursor.executemany(self._replace_params(sql, len(param_list[0]) if param_list and len(param_list) > 0 else 0),
+                                    [self._adapt_params(item) for item in param_list])
         except IntegrityError as error:
             raise utils.IntegrityError(str(error))
         except Database.Error as general_error:
