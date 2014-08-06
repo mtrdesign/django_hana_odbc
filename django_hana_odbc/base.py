@@ -70,10 +70,28 @@ class CursorWrapper(object):
         """
             execute with replaced placeholders
         """
-        self.cursor.execute(self._replace_params(sql,len(params) if params else 0),params)
+        try:
+            self.cursor.execute(self._replace_params(sql, len(params) if params else 0), params)
+        except IntegrityError as error:
+            raise utils.IntegrityError(str(error))
+        except Database.Error as general_error:
+            message = unicode(general_error)
+            if "301 unique constraint violated" in message:
+                raise utils.IntegrityError(message)
+            else:
+                raise
 
     def executemany(self, sql, param_list):
-        self.cursor.executemany(self._replace_params(sql,len(param_list[0]) if param_list and len(param_list)>0 else 0),param_list)
+        try:
+            self.cursor.executemany(self._replace_params(sql, len(param_list[0]) if param_list and len(param_list) > 0 else 0), param_list)
+        except IntegrityError as error:
+            raise utils.IntegrityError(str(error))
+        except Database.Error as general_error:
+            message = unicode(general_error)
+            if "301 unique constraint violated" in message:
+                raise utils.IntegrityError(message)
+            else:
+                raise
 
     def _replace_params(self,sql,params_count):
         """
