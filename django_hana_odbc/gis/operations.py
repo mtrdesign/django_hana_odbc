@@ -10,12 +10,12 @@ class GisOperations(DatabaseOperations):
     oracle = False
 
     select = '%s.ST_AsText()'
-    from_wkt = 'ST_GeomFromText'
+    from_text = 'ST_GeomFromText'
 
     Adapter = WKTAdapter
 
     def get_geom_placeholder(self, value, adapter):
-        return "{}(%s, {})".format(self.from_wkt, adapter.srid)
+        return "{}(%s, {})".format(self.from_text, adapter.srid)
 
     def geo_db_type(self, f):
         geom_type = f.geom_type
