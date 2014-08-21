@@ -66,7 +66,10 @@ class GisOperations(DatabaseOperations):
         self.gis_terms = dict([(term, None) for term in gis_terms])
 
     def get_geom_placeholder(self, value, adapter):
-        return "{}(%s, {})".format(self.from_text, adapter.srid)
+        if value and adapter:
+            return "{}(%s, {})".format(self.from_text, adapter.srid)
+        else:
+            return '%s'
 
     def geo_db_type(self, f):
         geom_type = f.geom_type
