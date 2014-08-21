@@ -43,7 +43,6 @@ class GisOperations(DatabaseOperations):
     oracle = False
 
     select = '%s.ST_AsText()'
-    from_text = 'ST_GeomFromText'
 
     Adapter = WKTAdapter
 
@@ -66,10 +65,13 @@ class GisOperations(DatabaseOperations):
         self.gis_terms = dict([(term, None) for term in gis_terms])
 
     def get_geom_placeholder(self, value, adapter):
-        if value and adapter:
-            return "{}(%s, {})".format(self.from_text, adapter.srid)
-        else:
-            return '%s'
+        """
+        Let WKTAdapter just turn this into a nice WKT geometry string that HANA accepts
+
+        Note: ST_GeomFromText looks like the better solution since you could pass the SRID too.
+        Sadly using that in an UPDATE statement causes the HANA indexserver process to segfault.
+        """
+        return '%s'
 
     def geo_db_type(self, f):
         geom_type = f.geom_type
