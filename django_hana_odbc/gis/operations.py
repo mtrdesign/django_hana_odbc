@@ -27,6 +27,16 @@ class ST_Distance(GisFunction):
         super(ST_Distance, self).__init__(self.dist_func,
                                           operator=operator)
 
+    def as_sql(self, geo_col, geometry='%s'):
+        srid = 4326
+        # HACK: self.field explicitly set by our ops.spatial_lookup_sql implementation
+        # we need to pass through ST_GeomFromText or HANA won't return any matches
+        # (probably defaulting to SRID 0
+        if hasattr(self, 'field') and hasattr(self.field, 'srid'):
+            srid = self.field.srid
+        return super(ST_Distance, self).as_sql(geo_col, 'ST_GeomFromText({}, {})'.format(geometry, srid))
+
+
 
 # Valid distance types and substitutions
 dtypes = (Decimal, Distance, float) + six.integer_types
@@ -156,6 +166,7 @@ class GisOperations(DatabaseOperations):
                 op = tmp
                 geom = value
             # Calling the `as_sql` function on the operation instance.
+            op.field = field
             return op.as_sql(geo_col, self.get_geom_placeholder(field, geom))
         elif lookup_type == 'isnull':
             # Handling 'isnull' lookup type
