@@ -52,8 +52,7 @@ class CursorWrapper(object):
         self.is_hana = True
 
     def set_dirty(self):
-        if self.db.is_managed():
-            self.db.set_dirty()
+        self.db.set_dirty()
 
     def __getattr__(self, attr):
         self.set_dirty()
