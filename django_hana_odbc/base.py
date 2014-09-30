@@ -5,8 +5,8 @@ import logging
 import sys
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import utils
 from django.db.backends import *
+from django.db import utils as db_utils
 from django.db.backends.signals import connection_created
 from django_hana_odbc.operations import DatabaseOperations
 from django_hana_odbc.client import DatabaseClient
@@ -84,11 +84,11 @@ class CursorWrapper(object):
             self.cursor.execute(self._replace_params(sql, len(params) if params else 0),
                                 self._adapt_params(params))
         except IntegrityError as error:
-            raise utils.IntegrityError(str(error))
+            raise db_utils.IntegrityError(str(error))
         except Database.Error as general_error:
             message = unicode(general_error)
             if "301 unique constraint violated" in message:
-                raise utils.IntegrityError(message)
+                raise db_utils.IntegrityError(message)
             else:
                 raise
 
@@ -97,11 +97,11 @@ class CursorWrapper(object):
             self.cursor.executemany(self._replace_params(sql, len(param_list[0]) if param_list and len(param_list) > 0 else 0),
                                     [self._adapt_params(item) for item in param_list])
         except IntegrityError as error:
-            raise utils.IntegrityError(str(error))
+            raise db_utils.IntegrityError(str(error))
         except Database.Error as general_error:
             message = unicode(general_error)
             if "301 unique constraint violated" in message:
-                raise utils.IntegrityError(message)
+                raise db_utils.IntegrityError(message)
             else:
                 raise
 
