@@ -65,6 +65,14 @@ class CursorWrapper(object):
     def __iter__(self):
         return iter(self.cursor)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        # Ticket #17671 - Close instead of passing thru to avoid backend
+        # specific behavior.
+        self.close()
+
     def _adapt_params(self, params):
         """
         Stringify GIS-adapted geometry params to avoid an 'Invalid type' ODBC driver error.
