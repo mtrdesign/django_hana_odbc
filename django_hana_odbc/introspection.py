@@ -22,6 +22,15 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         1700: 'DecimalField',
     }
 
+    def __init__(self, *args, **kwargs):
+        super(DatabaseIntrospection, self).__init__(*args, **kwargs)
+
+        # a ghetto way to uppercase the django_migrations table name
+        # as the Django 1.7 "table exists" check is case sensitive
+        from django.db.migrations.recorder import MigrationRecorder
+        MigrationRecorder.Migration._meta.db_table = 'DJANGO_MIGRATIONS'
+
+
     def get_table_list(self, cursor):
         "Returns a list of table names in the current database."
         cursor.execute("select table_name from tables where schema_name='%s'" % self.connection.default_schema)
