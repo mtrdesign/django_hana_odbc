@@ -12,6 +12,7 @@ from django_hana_odbc.operations import DatabaseOperations
 from django_hana_odbc.client import DatabaseClient
 from django_hana_odbc.creation import DatabaseCreation
 from django_hana_odbc.introspection import DatabaseIntrospection
+from django_hana_odbc.schema import DatabaseSchemaEditor
 from django.utils.timezone import utc
 from time import time
 
@@ -292,3 +293,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             except Database.IntegrityError as e:
                 ### TODO: reraise instead of raise - six.reraise was deleted due to incompability with django 1.4
                 raise
+
+    def schema_editor(self, *args, **kwargs):
+        "Returns a new instance of this backend's SchemaEditor"
+        return DatabaseSchemaEditor(self, *args, **kwargs)
